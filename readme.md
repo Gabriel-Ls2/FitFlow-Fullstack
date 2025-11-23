@@ -11,7 +11,7 @@ O projeto consiste em uma API robusta construída com **Django REST Framework** 
 
 ---
 
-## 📱 Funcionalidades
+## Funcionalidades
 
 - [x] **Autenticação Completa**: Login, Cadastro e Recuperação de Senha (via código OTP 6 dígitos).
 - [x] **Dashboard Interativa**: Resumo diário, cronômetro de exercícios em tempo real.
