@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart'; // Para checar se é Web
 class ApiService {
   static final String _baseUrl = kIsWeb 
       ? 'http://127.0.0.1:8000/api' 
-      : 'http://10.0.2.2:8000/api';
+      : 'https://fitflow-fullstack.onrender.com/';
   
   final Dio _dio = Dio();
   final _storage = const FlutterSecureStorage();
