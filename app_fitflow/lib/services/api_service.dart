@@ -18,43 +18,36 @@ class ApiService {
   // LOGIN
   Future<String?> login(String username, String password) async {
     try {
-      final response = await _dio.post('https://fitflow-fullstack.onrender.com/api/auth/login/', data: {
+      final response = await _dio.post('/auth/login/', data: {
         'username': username,
         'password': password,
       });
 
-      // Salva o token
       final token = response.data['key'];
       await _storage.write(key: 'auth_token', value: token);
-      return null; // Sucesso
+      return null; 
     } on DioException catch (e) {
-      if (e.response != null) {
-        return 'Erro: ${e.response?.data}';
-      }
-      return 'Erro de conexão com o Django em $_baseUrl';
+      if (e.response != null) return 'Erro: ${e.response?.data}';
+      return 'Erro de conexão com $_baseUrl';
     }
   }
 
   // CADASTRAR USUÁRIO
   Future<String?> register(String username, String email, String password, String passConfirm) async {
     try {
-      final response = await _dio.post('https://fitflow-fullstack.onrender.com/api/auth/registration/', data: {
+      final response = await _dio.post('/auth/registration/', data: {
         'username': username,
         'email': email,
         'password1': password,
-        'password2': passConfirm, // O Django espera confirmação
+        'password2': passConfirm,
       });
 
-      // O Django já retorna o token logo após o cadastro, então já logamos o usuário direto!
       final token = response.data['key'];
       await _storage.write(key: 'auth_token', value: token);
-      return null; // Sucesso (null = sem erro)
+      return null;
       
     } on DioException catch (e) {
-      if (e.response != null) {
-        // Tenta pegar a mensagem de erro específica do Django
-        return 'Erro: ${e.response?.data}';
-      }
+      if (e.response != null) return 'Erro: ${e.response?.data}';
       return 'Erro ao tentar cadastrar.';
     }
   }
@@ -62,8 +55,8 @@ class ApiService {
   // RECUPERAR SENHA
   Future<String?> solicitarCodigoSenha(String email) async {
     try {
-      await _dio.post('https://fitflow-fullstack.onrender.com/api/password/request-code/', data: {'email': email});
-      return null; // Sucesso
+      await _dio.post('/password/request-code/', data: {'email': email});
+      return null;
     } on DioException catch (e) {
       return 'Erro: ${e.response?.data}';
     }
@@ -71,15 +64,14 @@ class ApiService {
 
   Future<String?> trocarSenhaComCodigo(String email, String code, String newPassword) async {
     try {
-      await _dio.post('https://fitflow-fullstack.onrender.com/api/password/verify-change/', data: {
+      await _dio.post('/password/verify-change/', data: {
         'email': email,
         'code': code,
         'new_password': newPassword
       });
-      return null; // Sucesso
+      return null;
     } on DioException catch (e) {
       if (e.response != null) {
-        // Tenta pegar mensagem de erro do backend
         final data = e.response?.data;
         if (data is Map && data.containsKey('error')) return data['error'];
         return 'Erro: $data';
@@ -91,13 +83,11 @@ class ApiService {
   Future<Map<String, dynamic>?> getDashboardData() async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      // Envia o Token no cabeçalho para o Django saber quem é
-      final response = await _dio.get('https://fitflow-fullstack.onrender.com/api/dashboard/', 
+      final response = await _dio.get('/dashboard/', 
         options: Options(headers: {'Authorization': 'Token $token'})
       );
       return response.data;
     } catch (e) {
-      print("Erro ao buscar dashboard: $e");
       return null;
     }
   }
@@ -106,20 +96,19 @@ class ApiService {
   Future<bool> registrarAgua(int ml) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      await _dio.post('https://fitflow-fullstack.onrender.com/api/agua/', 
+      await _dio.post('/agua/', 
         data: {'quantidade_ml': ml},
         options: Options(headers: {'Authorization': 'Token $token'})
       );
-      return true; // Deu certo
+      return true;
     } catch (e) {
-      print("Erro ao registrar água: $e");
-      return false; // Deu erro
+      return false;
     }
   }
 
   // REGISTRAR EXERCÍCIO
   Future<bool> registrarExercicio(String tipo, int duracao, String intensidade) async {
-    return _postData('https://fitflow-fullstack.onrender.com/api/exercicios/', {
+    return _postData('/exercicios/', {
       'tipo_atividade': tipo,
       'duracao_minutos': duracao,
       'intensidade': intensidade
@@ -128,15 +117,15 @@ class ApiService {
 
   // REGISTRAR SONO
   Future<bool> registrarSono(double horas) async {
-    return _postData('https://fitflow-fullstack.onrender.com/api/sono/', {'horas_sono': horas});
+    return _postData('/sono/', {'horas_sono': horas});
   }
 
   // REGISTRAR REFEIÇÃO
   Future<bool> registrarRefeicao(String tipo, String descricao) async {
-    return _postData('https://fitflow-fullstack.onrender.com/api/refeicoes/', {'tipo_refeicao': tipo, 'descricao': descricao});
+    return _postData('/refeicoes/', {'tipo_refeicao': tipo, 'descricao': descricao});
   }
 
-  // Função auxiliar para evitar repetir código
+  // Função auxiliar genérica
   Future<bool> _postData(String endpoint, Map<String, dynamic> data) async {
     try {
       final token = await _storage.read(key: 'auth_token');
@@ -146,7 +135,6 @@ class ApiService {
       );
       return true;
     } catch (e) {
-      print("Erro em $endpoint: $e");
       return false;
     }
   }
@@ -155,25 +143,23 @@ class ApiService {
   Future<Map<String, dynamic>?> getProgressData() async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      final response = await _dio.get('https://fitflow-fullstack.onrender.com/api/progress/', 
+      final response = await _dio.get('/progress/', 
         options: Options(headers: {'Authorization': 'Token $token'})
       );
       return response.data;
     } catch (e) {
-      print("Erro ao buscar progresso: $e");
       return null;
     }
   }
 
-  // Busca as metas do usuário. Se não existir, retorna null.
+  // METAS
   Future<Map<String, dynamic>?> getMetas() async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      final response = await _dio.get('https://fitflow-fullstack.onrender.com/api/metas/', 
+      final response = await _dio.get('/metas/', 
         options: Options(headers: {'Authorization': 'Token $token'})
       );
       
-      // O Django retorna uma lista. Se tiver algo, pegamos o primeiro item.
       if (response.data is List && response.data.isNotEmpty) {
         return response.data[0];
       }
@@ -183,8 +169,6 @@ class ApiService {
     }
   }
 
-  // Cria ou Atualiza as metas
-  // Se já tiver ID, usa PATCH. Se não, usa POST.
   Future<bool> salvarMetas(int? id, int agua, double sono, int exercicio, int refeicoes) async {
     try {
       final token = await _storage.read(key: 'auth_token');
@@ -196,37 +180,29 @@ class ApiService {
       };
 
       if (id != null) {
-        // Atualiza existente
-        await _dio.patch('https://fitflow-fullstack.onrender.com/api/metas/$id/', data: dados, options: Options(headers: {'Authorization': 'Token $token'}));
+        await _dio.patch('/metas/$id/', data: dados, options: Options(headers: {'Authorization': 'Token $token'}));
       } else {
-        // Cria nova
-        await _dio.post('https://fitflow-fullstack.onrender.com/api/metas/', data: dados, options: Options(headers: {'Authorization': 'Token $token'}));
+        await _dio.post('/metas/', data: dados, options: Options(headers: {'Authorization': 'Token $token'}));
       }
       return true;
     } catch (e) {
-      print("Erro ao salvar metas: $e");
       return false;
     }
   }
 
-  // --- PERFIL ---
-
-  // Busca os dados do usuário logado (Nome, Email)
+  // PERFIL
   Future<Map<String, dynamic>?> getUserData() async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      // Esse endpoint já vem pronto no dj-rest-auth
-      final response = await _dio.get('https://fitflow-fullstack.onrender.com/api/auth/user/', 
+      final response = await _dio.get('/auth/user/', 
         options: Options(headers: {'Authorization': 'Token $token'})
       );
       return response.data;
     } catch (e) {
-      print("Erro ao buscar perfil: $e");
       return null;
     }
   }
   
-  // Função de Logout (Limpa o token)
   Future<void> logout() async {
     await _storage.delete(key: 'auth_token');
   }
